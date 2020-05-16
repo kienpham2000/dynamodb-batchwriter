@@ -1,7 +1,9 @@
 // Source: https://github.com/aws/aws-sdk-go-v2/pull/158/files
-package main
+package batchwriter
 
 import (
+	"context"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/dynamodbiface"
 
@@ -24,7 +26,7 @@ type BatchWriter struct {
 	// more than 25 items.
 	FlushAmount   int
 	tableName     string
-	client        dynamodbiface.DynamoDBAPI
+	client        dynamodbiface.ClientAPI
 	primaryKeys   []string
 	requestBuffer []dynamodb.WriteRequest
 }
@@ -34,11 +36,11 @@ type BatchWriter struct {
 //
 // New will return an error if it fails to access the table information with a
 // DescribeTableRequest.
-func New(tableName string, client dynamodbiface.DynamoDBAPI) (*BatchWriter, error) {
+func New(tableName string, client dynamodbiface.ClientAPI) (*BatchWriter, error) {
 	describeTableReq := client.DescribeTableRequest(&dynamodb.DescribeTableInput{
 		TableName: &tableName,
 	})
-	describeTableOut, err := describeTableReq.Send()
+	describeTableOut, err := describeTableReq.Send(context.Background())
 	if err != nil {
 		return &BatchWriter{}, err
 	}
@@ -55,7 +57,7 @@ func New(tableName string, client dynamodbiface.DynamoDBAPI) (*BatchWriter, erro
 // NewWithPrimaryKeys creates a new BatchWriter using `primaryKeys` as the
 // specified primary keys instead of getting them from a call to
 // DescribeTable.
-func NewWithPrimaryKeys(tableName string, client dynamodbiface.DynamoDBAPI,
+func NewWithPrimaryKeys(tableName string, client dynamodbiface.ClientAPI,
 	primaryKeys []string) *BatchWriter {
 
 	requestBuffer := make(
@@ -164,17 +166,16 @@ func (b *BatchWriter) Flush() error {
 	return nil
 }
 
-func (b *BatchWriter) sendRequestItems(
-	requestItems []dynamodb.WriteRequest,
-) (
-	*dynamodb.BatchWriteItemOutput, error,
+func (b *BatchWriter) sendRequestItems(requestItems []dynamodb.WriteRequest) (
+	*dynamodb.BatchWriteItemResponse, error,
 ) {
 	mappedItems := map[string][]dynamodb.WriteRequest{
 		b.tableName: requestItems,
 	}
 	batchInput := dynamodb.BatchWriteItemInput{RequestItems: mappedItems}
 	batchRequest := b.client.BatchWriteItemRequest(&batchInput)
-	output, err := batchRequest.Send()
+	output, err := batchRequest.Send(context.Background())
+
 	return output, err
 }
 
