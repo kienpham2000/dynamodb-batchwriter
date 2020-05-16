@@ -1,5 +1,5 @@
 // Source: https://github.com/aws/aws-sdk-go-v2/pull/158/files
-package batchwriter
+package main
 
 import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
