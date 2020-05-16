@@ -1,0 +1,2 @@
+# dynamodb-batchwriter
+DyanmoDB BatchWriter
